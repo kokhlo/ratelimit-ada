@@ -13,11 +13,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-15]
         gnat: ["13.2.1", "14.2.1", "16.1.0"]
         exclude:
           # GNAT before 14.2 has no macOS aarch64 toolchain; macos-latest is arm64.
-          - os: macos-latest
+          - os: macos-15
             gnat: "13.2.1"
     steps:
       - uses: actions/checkout@v4
