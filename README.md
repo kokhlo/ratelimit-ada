@@ -1,7 +1,7 @@
 # ratelimit-ada
 
 [![CI](https://github.com/kokhlo/ratelimit-ada/actions/workflows/build-test.yml/badge.svg)](https://github.com/kokhlo/ratelimit-ada/actions/workflows/build-test.yml)
-[![Release](https://img.shields.io/badge/release-ratelimit--0.1.0-blue)](https://github.com/kokhlo/ratelimit-ada/releases)
+[![Release](https://img.shields.io/badge/ratelimit-0.1.0-blue)](https://github.com/kokhlo/ratelimit-ada/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Alire](https://img.shields.io/badge/alire-ratelimit-orange)](https://alire.ada.dev/crates/ratelimit.html)
 
