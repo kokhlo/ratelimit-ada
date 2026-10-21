@@ -1,0 +1,66 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enforce alire.toml version matches the tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST_VERSION=$(awk -F'"' '/^version *=/{print $2}' alire.toml)
+          if [ "$TAG" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match alire.toml version $MANIFEST_VERSION"
+            exit 1
+          fi
+          echo "Version check passed: $MANIFEST_VERSION"
+
+      - name: Enforce README badge version matches the tag
+        run: |
+          BADGE=$(grep -o 'ratelimit-[0-9][0-9.]*-blue' README.md | head -1 | sed 's/ratelimit-//; s/-blue//')
+          if [ "$BADGE" != "${GITHUB_REF_NAME#v}" ]; then
+            echo "::error::README badge version $BADGE does not match tag ${GITHUB_REF_NAME#v}"
+            exit 1
+          fi
+
+      - uses: alire-project/setup-alire@v5
+        with:
+          toolchain: gnat_native=14.2.1 gprbuild=25.0.1
+
+      - name: Expose Alire toolchain binaries on PATH
+        run: |
+          if ! command -v gprbuild >/dev/null 2>&1; then
+            for d in "$HOME"/.local/share/alire/toolchains/*/bin; do
+              echo "$d" >> "$GITHUB_PATH"
+            done
+          fi
+
+      - name: Build library and tests
+        run: |
+          alr build
+          gprbuild -p -P ratelimit_tests.gpr
+
+      - name: Run test suite
+        run: ./bin/rate_limit_tests
+
+      - name: Create source archive
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --prefix="ratelimit-ada-$VERSION/" -o "ratelimit-ada-$VERSION.tar.gz" "$GITHUB_SHA"
+          shasum -a 512 "ratelimit-ada-$VERSION.tar.gz" > "ratelimit-ada-$VERSION.tar.gz.sha512"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            ratelimit-ada-*.tar.gz
+            ratelimit-ada-*.tar.gz.sha512

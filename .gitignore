@@ -1,0 +1,19 @@
+# Build artifacts
+obj/
+lib/
+bin/
+*.ali
+*.o
+
+# Alire working directory (keep alire.toml)
+.alire/
+alire/
+
+# Alire-generated configuration project
+config/
+
+# Editor temporaries
+*~
+*.swp
+*.swo
+.DS_Store

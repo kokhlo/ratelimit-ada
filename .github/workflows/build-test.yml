@@ -1,0 +1,64 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} / GNAT ${{ matrix.gnat }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        gnat: ["13.2.1", "14.2.1", "16.1.0"]
+        exclude:
+          # GNAT before 14.2 has no macOS aarch64 toolchain; macos-latest is arm64.
+          - os: macos-latest
+            gnat: "13.2.1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: alire-project/setup-alire@v5
+        with:
+          toolchain: gnat_native=${{ matrix.gnat }} gprbuild=25.0.1
+
+      - name: Expose Alire toolchain binaries on PATH
+        # setup-alire does not always put gprbuild on PATH; running it through
+        # 'alr exec' instead injects an environment that makes gprbuild emit
+        # duplicate LC_RPATH entries (fatal on newer macOS dyld with GNAT
+        # 14.x). Plain binaries from the toolchain dir behave correctly.
+        run: |
+          if ! command -v gprbuild >/dev/null 2>&1; then
+            for d in "$HOME"/.local/share/alire/toolchains/*/bin; do
+              echo "$d" >> "$GITHUB_PATH"
+            done
+          fi
+
+      - name: Build library and tests
+        run: |
+          alr build
+          gprbuild -p -P ratelimit_tests.gpr
+
+      - name: Run test suite
+        run: ./bin/rate_limit_tests
+
+  alire-check:
+    # Prove the crate still builds the way alire-index consumers will use it.
+    name: alr with --use (as index consumer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: alire-project/setup-alire@v5
+        with:
+          toolchain: gnat_native=14.2.1 gprbuild=25.0.1
+      - name: Build a dependent crate pinned to this checkout
+        run: |
+          cd ..
+          alr -n init myapp --bin
+          cd myapp
+          alr -n with ratelimit --use=../ratelimit-ada
+          alr -n build
