@@ -1,13 +1,42 @@
 # ratelimit-ada
 
 [![CI](https://github.com/kokhlo/ratelimit-ada/actions/workflows/build-test.yml/badge.svg)](https://github.com/kokhlo/ratelimit-ada/actions/workflows/build-test.yml)
-[![Release](https://img.shields.io/badge/ratelimit-0.1.0-blue)](https://github.com/kokhlo/ratelimit-ada/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Alire](https://img.shields.io/badge/alire-ratelimit-orange)](https://alire.ada.dev/crates/ratelimit.html)
 
 Token bucket and fixed window rate limiters for Ada. No dependencies,
 pure Ada 2012, deterministic under a caller-supplied clock — no sleeping
 in tests, no hidden timers in production.
+
+## Quick start
+
+```bash
+alr with ratelimit
+```
+
+```ada
+with Ada.Calendar;
+with Rate_Limit;                  use Rate_Limit;
+with Rate_Limit.Token_Bucket;
+
+procedure Quick_Start is
+   Buckets : Rate_Limit.Token_Bucket.Map :=
+               Rate_Limit.Token_Bucket.Empty_Map;
+   R       : constant Limiter_Result :=
+               Rate_Limit.Token_Bucket.Check
+                 (Buckets, "client-1",
+                  Rate  => 10.0,            --  sustained requests/s
+                  Burst => 20.0,            --  bucket capacity
+                  Now   => Ada.Calendar.Clock);
+begin
+   if R.Outcome = Allowed then
+      null;  --  serve the request
+   else      --  Denied: honour R.Retry_After (or answer HTTP 429)
+      delay R.Retry_After;
+   end if;
+end Quick_Start;
+```
+
+A complete runnable version (deterministic clock, no `delay`) is in
+[examples/token_bucket_demo.adb](examples/token_bucket_demo.adb).
 
 ## Why
 
@@ -25,10 +54,6 @@ battle-standard policies in ~400 lines of SPARK-friendly Ada.
 | `Rate_Limit.Fixed_Window` | Hard per-window quotas | Up to `Limit` admissions per `Window_Length` seconds; counter resets at window edges (epoch-aligned) |
 
 ## Install
-
-```bash
-alr with ratelimit
-```
 
 Or add to your `alire.toml`:
 
@@ -120,9 +145,11 @@ key's state, `Clear` drops everything.
 ## Building and testing
 
 ```bash
-alr build                 # library
-gprbuild -p -P ratelimit_tests.gpr   # tests
-./bin/rate_limit_tests   # 45 assertions, exit code 1 on any failure
+alr build                             # library
+gprbuild -p -P ratelimit_tests.gpr    # tests
+./bin/rate_limit_tests                # 45 assertions, exit code 1 on any failure
+gprbuild -p -P examples/ratelimit_examples.gpr   # examples (not part of alr build)
+./bin/token_bucket_demo
 ```
 
 ## Status

@@ -7,7 +7,7 @@ maintainers = ["Konstantin Khlopkov <konstantin.khlopkov93@gmail.com>"]
 maintainers-logins = ["kokhlo"]
 
 licenses = "MIT"
-tags = ["rate-limit", "rate-limiter", "throttling", "token-bucket"]
+tags = ["rate-limit", "throttling", "token-bucket", "api", "web"]
 
 website = "https://github.com/kokhlo/ratelimit-ada"
 
